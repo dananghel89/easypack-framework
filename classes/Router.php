@@ -45,7 +45,7 @@ class Router {
 		} else {
 			@list( $controller, $action ) = explode( '#', $match['target'] . 'Action' );
 
-			if ( is_callable( array($controller, $action) ) ) {
+			if ( method_exists( $controller, $action ) ) {
 				$controller = new $controller;
 				call_user_func_array( array($controller, $action), $match['params'] );
 
