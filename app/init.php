@@ -10,15 +10,15 @@ if ( !defined('EPACK_PATH') ) {
 if ( !function_exists('epack_init') ) {
 	function epack_init() {
 		if ( !defined('ABS_PATH') ) {
-			throw new \Exception('Absolute path is not defined!');
+			throw new Exception('Absolute path is not defined!');
 		}
 
 		require __DIR__ . '/helpers.php';
 
-		new \Epack\Config();
-		new \Epack\Constants();
-		new \Epack\Middleware();
-		new \Epack\Router();
+		new Epack\Config();
+		new Epack\Constants();
+		new Epack\Middleware();
+		new Epack\Router();
 
 		if ( defined('PUB_PATH') ) {
 			require ROUTES_PATH . '/web.php';

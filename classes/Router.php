@@ -12,7 +12,7 @@ class Router {
 
 	// Router constructor.
 	public function __construct() {
-		self::$object = new AltoRouter();
+		self::$object = new \AltoRouter();
 	}
 
 	// Router get instance method.
@@ -21,26 +21,29 @@ class Router {
 	}
 
 	// Router dispatch method.
-	static function dispatch($error) {
-		if ( empty(self::object) ) {
+	static function dispatch($error = null) {
+		if ( empty(self::$object) ) {
 			throw new \Exception('Router object not initialized!');
 		}
 
 		// match current request url
-		$router = self::object;
+		$router = self::$object;
 		$match = $router->match();
 
 		// call closure or throw 404 status
 		if ( $match === false ) {
-			if ( is_callable($error) ) {
+			if ( !empty($error) && is_callable($error) ) {
 				call_user_func($error);
 
 			} else {
 				header($_SERVER["SERVER_PROTOCOL"] . ' 404 Not Found');
 			}
 
+		} elseif ( is_callable( $match['target'] ) ) {
+			call_user_func_array( $match['target'], $match['params'] );
+
 		} else {
-			@list( $controller, $action ) = explode( '#', $match['target'] );
+			@list( $controller, $action ) = explode( '#', $match['target'] . 'Action' );
 
 			if ( is_callable( array($controller, $action) ) ) {
 				$controller = new $controller;
