@@ -10,6 +10,7 @@ class Middleware {
 	// Middleware properties.
 	protected $classes = [
 		'Options',
+		'Database',
 		'Model',
 	];
 

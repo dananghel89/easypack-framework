@@ -9,50 +9,49 @@ class Database {
 
 	// Database properties.
 	protected static $config;
-	protected static $conn;
+	protected static $source;
+	protected static $pdo;
 
 	// Database constructor.
-	public function __construct($name = 'mysql') {
+	public function __construct() {
 		$vars = \Epack\Config::getVars();
 
-		if ( isset($vars->{$name}) ) {
-			self::$config = $vars->{$name};
-			$this->setConn();
+		if ( isset($vars->db) ) {
+			self::$config = $vars->db;
+			
+			$this->setSource();
+			$this->setPdo();
 		}
 	}
 
-	// Database set conn method.
-	protected function setConn() {
+	// Database set source method.
+	protected function setSource() {
 		extract(self::$config, EXTR_SKIP);
 
-		$options = [
-			\PDO::MYSQL_ATTR_INIT_COMMAND => "SET time_zone = '{$timezone}'",
-			\PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION,
-		];
+		self::$source = new \Delight\Db\PdoDataSource($drive);
 
-		if ( ! ( empty($ssl_key) || empty($ssl_cert) || empty($ssl_ca) ) ) {
-			$options += [
-				\PDO::MYSQL_ATTR_SSL_KEY  => $ssl_key,
-				\PDO::MYSQL_ATTR_SSL_CERT => $ssl_cert,
-				\PDO::MYSQL_ATTR_SSL_CA   => $ssl_ca,
-			];
+		self::$source->setHostname($hostname)
+			->setPort($port)
+			->setDatabaseName($name)
+			->setCharset($charset)
+			->setUsername($username)
+			->setPassword($password);
+	}
+
+	// Database set pdo method.
+	protected function setPdo() {
+		if ( empty(self::$source) ) {
+			return;
 		}
 
-		if ( !empty($database) ) {
-			try {
-				$dsn = "mysql:host={$host};port={$port};dbname={$database};charset={$charset}";
-				self::$conn = new \PDO($dsn, $username, $password, $options);
-
-			} catch ( \PDOException $e ) {
-				throw new \Exception("Connection error: " . $e->getMessage());
-			}
-		}
+		self::$pdo = \Delight\Db\PdoDatabase::fromDataSource(self::$source);
 	}
 
 	// Database get instance method.
 	static function getInstance() {
 		return (object) [
-			'conn'   => self::$conn,
+			'source' => self::$source,
+			'pdo' => self::$pdo,
 			'prefix' => self::$config['prefix'],
 		];
 	}

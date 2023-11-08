@@ -8,31 +8,20 @@ namespace Epack;
 class Model {
 
 	// Model properties.
-	protected static $handler;
+	protected static $pdo;
 	protected static $prefix;
 
 	// Model constructor.
 	public function __construct() {
-		$database = new \Epack\Database();
+		$database = \Epack\Database::getInstance();
 
-		$this->setHandler(
-			$database::getInstance()
-		);
+		self::$pdo = $database->pdo;
+		self::$prefix = $database->prefix;
 	}
 
-	// Model set handler method.
-	protected function setHandler($db) {
-		if ( empty($db->conn) ) {
-			return;
-		}
-
-		self::$handler = \Delight\Db\PdoDatabase::fromPdo($db->conn, true);
-		self::$prefix  = $db->prefix;
-	}
-
-	// Model pdo method.
-	static function pdo() {
-		return self::$handler;
+	// Model db method.
+	static function db() {
+		return self::$pdo;
 	}
 
 	// Model get table method.
@@ -77,7 +66,7 @@ class Model {
 
 		$sql = "SELECT * FROM $table";
 
-		return self::pdo()->select($sql);
+		return self::db()->select($sql);
 	}
 
 	// Model select row method.
@@ -90,12 +79,12 @@ class Model {
 			$id,
 		];
 
-		return self::pdo()->selectRow($sql, $values);
+		return self::db()->selectRow($sql, $values);
 	}
 
 	// Model insert method.
 	static function insert($post = [], $name = '') {
-		return self::pdo()->insert(
+		return self::db()->insert(
 			self::getTable($name),
 			self::getFields($post)
 		);
@@ -107,7 +96,7 @@ class Model {
 			'id' => $id,
 		];
 
-		return self::pdo()->update(
+		return self::db()->update(
 			self::getTable($name),
 			self::getFields($post, false),
 			$where
@@ -120,7 +109,7 @@ class Model {
 			'id' => $id,
 		];
 
-		return self::pdo()->delete(
+		return self::db()->delete(
 			self::getTable($name), $where
 		);
 	}
