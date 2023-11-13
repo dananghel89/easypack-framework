@@ -25,23 +25,19 @@ class Model {
 	}
 
 	// Model get table method.
-	static function getTable($name = '') {
-		if ( !empty(static::$table) ) {
-			$name = static::$table;
-		}
+	static function getTable() {
+		$table = !empty(static::$table) ? static::$table : 'untitled';
 
-		return self::$prefix . $name;
+		return self::$prefix . $table;
 	}
 
 	// Model get fields method.
 	static function getFields($post = [], $all = true) {
-		if ( empty(static::$fields) ) {
-			return;
-		}
+		$fields = !empty(static::$fields) ? static::$fields : [];
 
 		$rows = [];
 
-		foreach ( static::$fields as $key => $value ) {
+		foreach ( $fields as $key => $value ) {
 			if ( strpos($key, '!') === 0 ) {
 				$key = substr($key, 1);
 
@@ -60,57 +56,84 @@ class Model {
 		return $rows;
 	}
 
-	// Model select method.
-	static function select($name = '') {
-		$table = self::getTable($name);
+	// Model query method.
+	static function query($columns = '*', $clause = '', $bind = [], $fetch = '') {
+		$table = self::getTable();
 
-		$sql = "SELECT * FROM $table";
+		$sql = "
+			SELECT $columns FROM $table
+		";
 
-		return self::db()->select($sql);
+		if ( !empty($clause) ) {
+			$sql .= " WHERE {$clause}";
+		}
+
+		switch ( $fetch ) {
+			case 'row':
+				return self::db()->selectRow($sql, $bind);
+				break;
+
+			case 'value':
+				return self::db()->selectValue($sql, $bind);
+				break;
+
+			case 'column':
+				return self::db()->selectColumn($sql, $bind);
+				break;
+
+			default:
+				return self::db()->select($sql, $bind);
+				break;
+		}
 	}
 
-	// Model select row method.
-	static function selectRow($id, $name = '') {
-		$table = self::getTable($name);
+	// Model select one method.
+	static function select($post = [], $fetch = '') {
+		$clause = "";
+		$bind = [];
 
-		$sql = "SELECT * FROM $table WHERE id = ?";
+		foreach ( $post as $column => $value ) {
+			if ( empty($value) ) continue;
 
-		$values = [
-			$id,
-		];
+			$clause .= " AND {$column} = ?";
+			array_push($bind, $value);
+		}
 
-		return self::db()->selectRow($sql, $values);
+		$clause = substr($clause, 4);
+
+		return self::query('*', $clause, $bind, $fetch);
 	}
 
 	// Model insert method.
-	static function insert($post = [], $name = '') {
+	static function insert($post = []) {
 		return self::db()->insert(
-			self::getTable($name),
+			self::getTable(),
 			self::getFields($post)
 		);
 	}
 
 	// Model update method.
-	static function update($id, $post = [], $name = '') {
-		$where = [
+	static function update($id, $post = []) {
+		$clause = [
 			'id' => $id,
 		];
 
 		return self::db()->update(
-			self::getTable($name),
+			self::getTable(),
 			self::getFields($post, false),
-			$where
+			$clause
 		);
 	}
 
 	// Model delete method.
-	static function delete($id, $name = '') {
-		$where = [
+	static function delete($id) {
+		$clause = [
 			'id' => $id,
 		];
 
 		return self::db()->delete(
-			self::getTable($name), $where
+			self::getTable(),
+			$clause
 		);
 	}
 

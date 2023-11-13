@@ -9,7 +9,7 @@ use Epack\Tools\Helpers;
 /** @group Array */
 
 if ( !function_exists('array_insert') ) {
-	function array_insert($array, $target, $key, $value = null, $after = true) {
+	function array_insert(&$array, $target, $key, $value = null, $after = true) {
 		return Helpers::arrayInsert($array, $target, $key, $value, $after);
 	}
 }

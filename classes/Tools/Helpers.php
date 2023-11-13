@@ -13,7 +13,7 @@ class Helpers {
 	/** @group Array */
 
 	// Helpers array insert method.
-	static function arrayInsert($array, $target, $key, $value = null, $after = true) {
+	static function arrayInsert(&$array, $target, $key, $value = null, $after = true) {
 		if ( !is_array($array) || $array === [] ) {
 			return false;
 		}
@@ -30,7 +30,7 @@ class Helpers {
 			$out[$key] = $value;
 		}
 
-		return $out;
+		$array = $out;
 	}
 
 	/** @group Strings */
