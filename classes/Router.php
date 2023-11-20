@@ -43,9 +43,9 @@ class Router {
 			call_user_func_array( $match['target'], $match['params'] );
 
 		} else {
-			@list( $controller, $action ) = explode( '#', $match['target'] . 'Action' );
+			@list( $controller, $action ) = explode( '#', $match['target'] );
 
-			if ( method_exists( $controller, $action ) ) {
+			if ( method_exists( $controller, $action . 'Action' ) ) {
 				$controller = new $controller;
 				call_user_func_array( array($controller, $action), $match['params'] );
 
