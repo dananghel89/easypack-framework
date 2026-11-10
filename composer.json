@@ -28,7 +28,7 @@
 		}
 	},
 	"scripts": {
-		"test": "pest",
+		"test": "@php -d xdebug.mode=off vendor/bin/pest",
 		"lint": "pint",
 		"test:lint": "pint --test"
 	},
