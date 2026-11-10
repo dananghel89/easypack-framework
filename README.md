@@ -49,7 +49,7 @@ A constant defined before `epack_init()` wins over `.env` and the config files.
   - `select(['column' => $value], 'row')`: every non-null value is a condition, and column names are checked and quoted.
   - `query($columns, $clause, $bind, $fetch)` for anything else. `$columns` and `$clause` must be written in code, with every value passed through `$bind`.
 - **Sessions**: `new Epack\Tools\Auth()` starts the session. Then `Auth::login($account)` (with a new session ID), `Auth::logout()`, `Auth::isLoggedIn()` and `Auth::getAccount()`.
-- **Tools**: `Mailer` (PHPMailer with the `mail` config), `CurlGeneric` and `file_get_contents_curl()` (certificates verified, with timeouts), `Storage` (namespaced session storage), `Translation` (`__('key', ['name' => 'Ann'])` with `app/locales/<lang>.php`), `DataTables` (server-side processing).
+- **Tools**: `Mailer` (PHPMailer with the `mail` config), `CurlGeneric` and `file_get_contents_curl()` (certificates verified, with timeouts), `Storage` (namespaced session storage), `Translation` (`__('key', ['name' => 'Ann'])` with `app/locales/<lang>.php`), `DataTables` (server-side processing: the official `SSP` class from `datatables/datatables`, plus `extended()` for joins).
 
 ## Helper functions
 
@@ -86,4 +86,4 @@ composer test:lint
 
 ## License
 
-MIT, see [LICENSE](LICENSE). Some classes are adapted from MIT-licensed projects, and their original notices are kept in the files: `DataTables` (SpryMedia Ltd.), `Storage` (Hybridauth) and `Translation` (Interativa Digital).
+MIT, see [LICENSE](LICENSE). Some classes are adapted from MIT-licensed projects, and their original notices are kept in the files: `Storage` (Hybridauth) and `Translation` (Interativa Digital).

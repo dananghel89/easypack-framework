@@ -7,7 +7,7 @@ Plans live in `../docs/` (not in this repo): review/fix (done), then GitHub migr
 ## Stack
 
 - Runtime constraint `php >=7.3`; development on PHP 8.4.26 (WAMP, CLI and Apache). PHP 8.5.11 is at `C:\Wamp\bin\php\php8.5.11\php.exe` for forward checks.
-- Dependencies: AltoRouter 2.0, delight-im/db 1.3, Plates 3.5, PHPMailer 6.8, clausnz/php-helpers 0.2 (the upgrade plan replaces or updates them).
+- Dependencies: AltoRouter 2.0, delight-im/db 1.3, Plates 3.5, PHPMailer 6.8, clausnz/php-helpers 0.2 (the upgrade plan replaces or updates them), datatables/datatables 1.10 (only for `SSP`: `Epack\Tools\DataTables` loads `examples/server_side/scripts/ssp.class.php` from it and extends it; never copy or edit that file).
 - Dev: Pest 5 (PHPUnit 13), Pint (PER preset).
 
 ## Commands

@@ -5,7 +5,6 @@
  */
 
 use Epack\Tools\Auth;
-use Epack\Tools\DataTables;
 use Epack\Tools\Storage;
 use Tests\Fixtures\Controllers\PageController;
 
@@ -74,12 +73,6 @@ $router->map('GET', '/image/not-an-image', function () {
 });
 $router->map('GET', '/image/outside', function () {
     var_dump(get_local_image(get_site_url('/../sites/default/.env')));
-});
-
-// DataTables
-$router->map('GET', '/datatables/broken', function () {
-    $pdo = new PDO('sqlite::memory:', null, null, [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
-    DataTables::sql_exec($pdo, [], 'SELECT * FROM missing_table');
 });
 
 if (defined('EPACK_NO_ERROR_CALLBACK')) {
