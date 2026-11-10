@@ -15,6 +15,35 @@ class ErrorHandler
     public static function register()
     {
         set_exception_handler([self::class, 'handle']);
+        set_error_handler([self::class, 'handleError'], E_DEPRECATED | E_USER_DEPRECATED);
+    }
+
+    // ErrorHandler handle error method.
+    //
+    // Deprecations raised inside third-party packages (vendor/, except this
+    // framework) are skipped: the app can't fix them, and printing them
+    // before the headers breaks status codes and cookies. Everything else
+    // goes on to PHP's normal error handling.
+    public static function handleError($level, $message, $file = '', $line = 0)
+    {
+        return self::isThirdParty($file);
+    }
+
+    // ErrorHandler is third party method.
+    public static function isThirdParty($file)
+    {
+        $file = str_replace('\\', '/', (string) $file);
+
+        // Inside the framework only its own vendor/ folder is third party.
+        foreach ([dirname(__DIR__), realpath(dirname(__DIR__))] as $root) {
+            $root = str_replace('\\', '/', (string) $root) . '/';
+
+            if ($root !== '/' && strpos($file, $root) === 0) {
+                return strpos($file, $root . 'vendor/') === 0;
+            }
+        }
+
+        return strpos($file, '/vendor/') !== false;
     }
 
     // ErrorHandler is debug method.

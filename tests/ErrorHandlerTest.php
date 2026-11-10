@@ -38,3 +38,26 @@ test('the exception is logged to storage/logs/epack.log', function () use ($log)
     expect($log)->toBeFile()
         ->and(file_get_contents($log))->toContain('RuntimeException: boom secret');
 });
+
+test('with APP_DEBUG = true deprecations from vendor packages are skipped, the app\'s are shown', function () {
+    $response = http('GET', '/deprecations', ['define' => ['APP_DEBUG' => true]]);
+
+    expect($response['status'])->toBe(201)
+        ->and($response['body'])->toContain('ok')
+        ->toContain('app deprecation')
+        ->not->toContain('PdoDatabase');
+});
+
+test('with APP_DEBUG = true a missing page still answers 404', function () {
+    expect(http('GET', '/missing', ['define' => ['APP_DEBUG' => true]])['status'])->toBe(404);
+});
+
+test('only files in a vendor/ folder, and not the framework itself, count as third party', function () {
+    $root = dirname(__DIR__);
+
+    expect(Epack\ErrorHandler::isThirdParty('/app/vendor/delight-im/db/src/PdoDatabase.php'))->toBeTrue()
+        ->and(Epack\ErrorHandler::isThirdParty('C:\app\vendor\league\plates\src\Engine.php'))->toBeTrue()
+        ->and(Epack\ErrorHandler::isThirdParty('/app/routes/web.php'))->toBeFalse()
+        ->and(Epack\ErrorHandler::isThirdParty($root . '/classes/Model.php'))->toBeFalse()
+        ->and(Epack\ErrorHandler::isThirdParty($root . '/vendor/delight-im/db/src/PdoDatabase.php'))->toBeTrue();
+});

@@ -115,6 +115,7 @@ final class Server
             PHP_BINARY,
             '-d', 'xdebug.mode=off',
             '-d', 'html_errors=0',
+            '-d', 'opcache.enable=0', // compile every file per request, as Apache does here
             '-S', '127.0.0.1:' . self::$port,
             '-t', $root,
             $root . '/index.php',

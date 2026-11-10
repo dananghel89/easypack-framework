@@ -28,7 +28,7 @@ A constant defined before `epack_init()` wins over `.env` and the config files.
 | Key | Default | Meaning |
 |---|---|---|
 | `APP_ENV` | `local` | Free-form environment name |
-| `APP_DEBUG` | `false` | Show error details. **Never `true` on a public server.** Without it, errors show `app/Views/500.php` and are logged to `storage/logs/epack.log` |
+| `APP_DEBUG` | `false` | Show error details. **Never `true` on a public server.** Without it, errors show `app/Views/500.php` and are logged to `storage/logs/epack.log`. Deprecations from third-party packages in `vendor/` are never shown |
 | `APP_URL` | `http://example.com` | The canonical URL. `BASE_URL` and the URL helpers are built from it |
 | `APP_HOSTS` | (empty) | Extra hosts (comma-separated) whose `Host` header may be used for `BASE_URL`, e.g. `www.example.com`. Any other `Host` is ignored |
 | `APP_NAME`, `APP_TZ`, `APP_DF`, `APP_LANG`, `APP_VER` | | Name, time zone, default date format, default language, version |

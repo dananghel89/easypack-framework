@@ -30,6 +30,8 @@ composer test:lint   # Pint --test
 ## Behaviour worth knowing
 
 - `APP_DEBUG` (default `false`) alone decides whether errors are displayed. Uncaught exceptions go to `Epack\ErrorHandler`: the details with debug, otherwise `APP_PATH/Views/500.php`. Either way they are logged to `STORAGE_PATH/logs/epack.log`.
+- `Epack\ErrorHandler` also skips deprecations raised in third-party files under `vendor/` (not the framework's own code), so in debug mode they don't print before the headers.
+- The test web server runs with `opcache.enable=0`: with OPcache on, compile-time deprecations only appear on a file's first compile, which would hide them from the tests.
 - Only keys listed in a `config/*.php` file become constants (with `.env` overriding them). A new setting needs a key there and a default in `Constants::appConfig()`.
 - `BASE_URL` uses the request's `Host` only when it is the `APP_URL` host or listed in `APP_HOSTS`.
 - `Model::select()` treats every non-null value as a condition, throws without conditions, and checks and quotes column names. `update()` writes only the given fields.

@@ -23,6 +23,12 @@ $router->map('POST', '/form', function () {
 $router->map('GET', '/throw', function () {
     throw new RuntimeException('boom secret');
 });
+$router->map('GET', '/deprecations', function () {
+    class_exists(Delight\Db\PdoDatabase::class);
+    http_response_code(201);
+    echo 'ok ';
+    trigger_error('app deprecation', E_USER_DEPRECATED);
+});
 
 // URLs
 $router->map('GET', '/url', function () {
