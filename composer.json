@@ -1,9 +1,10 @@
 {
 	"name": "dananghel89/easypack-framework",
 	"description": "EasyPack Framework",
-	"type": "project",
+	"type": "library",
+	"license": "MIT",
 	"require": {
-		"php": ">=7.0",
+		"php": ">=7.3",
 		"altorouter/altorouter": "2.0.*",
 		"clausnz/php-helpers": "0.2.*",
 		"delight-im/db": "1.3.*",

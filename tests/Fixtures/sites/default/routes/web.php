@@ -58,13 +58,29 @@ $router->map('GET', '/storage', function () {
 	echo session_name();
 });
 
+// view helpers
+$router->map('GET', '/image', function () {
+	echo get_local_image(get_site_url('/pixel.png'), '', '"><script>alert(1)</script>', 'a" onload="x');
+});
+$router->map('GET', '/image/not-an-image', function () {
+	var_dump(get_local_image(get_site_url('/index.php')));
+});
+$router->map('GET', '/image/outside', function () {
+	var_dump(get_local_image(get_site_url('/../sites/default/.env')));
+});
+
 // DataTables
 $router->map('GET', '/datatables/broken', function () {
 	$pdo = new PDO('sqlite::memory:', null, null, [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
 	DataTables::sql_exec($pdo, [], 'SELECT * FROM missing_table');
 });
 
-Epack\Router::dispatch(function () {
-	http_response_code(404);
-	echo 'not found';
-});
+if ( defined('EPACK_NO_ERROR_CALLBACK') ) {
+	Epack\Router::dispatch();
+
+} else {
+	Epack\Router::dispatch(function () {
+		http_response_code(404);
+		echo 'not found';
+	});
+}

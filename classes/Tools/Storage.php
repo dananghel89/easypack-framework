@@ -2,7 +2,17 @@
 /**
  * Epack Storage Class
  *
- * @see https://github.com/hybridauth/hybridauth
+ * Adapted from Hybridauth's session storage (src/Storage/Session.php):
+ * renamed, and the session name now comes from config/auth.php.
+ *
+ * Original notice:
+ *
+ *   Hybridauth
+ *   https://hybridauth.github.io | https://github.com/hybridauth/hybridauth
+ *   (c) 2017 Hybridauth authors | https://hybridauth.github.io/license.html
+ *   Released under the MIT license.
+ *
+ * @see https://github.com/hybridauth/hybridauth/blob/master/src/Storage/Session.php
  */
 
 namespace Epack\Tools;

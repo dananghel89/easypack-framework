@@ -5,7 +5,6 @@
 
 namespace Epack\Tools;
 
-use CNZ\Helpers\Arr;
 use CNZ\Helpers\Str;
 
 class Helpers {
@@ -451,7 +450,13 @@ class Helpers {
 	}
 
 	// Helpers get part method.
+	//
+	// The slug is a path inside app/Views, so it may not contain "..".
 	static function getPart($slug) {
+		if ( !is_string($slug) || strpos($slug, '..') !== false || strpos($slug, "\0") !== false ) {
+			throw new \InvalidArgumentException('Invalid view slug: ' . var_export($slug, true));
+		}
+
 		return \Epack\View::getPath() . "/{$slug}.php";
 	}
 
@@ -477,18 +482,30 @@ class Helpers {
 		}
 
 		$path = defined('PUB_PATH') ? PUB_PATH : '/';
-		$filename = $path . str_replace( self::getSiteUrl(), '', $url );
+		$relative = str_replace( self::getSiteUrl(), '', $url );
 
-		if ( !file_exists($filename) ) {
+		// only files inside the public folder
+		if ( strpos($relative, '..') !== false ) {
+			return;
+		}
+
+		$filename = $path . $relative;
+
+		if ( !is_file($filename) ) {
 			return;
 		}
 
 		$info = getimagesize($filename);
 
+		// not an image, or an image without a size
+		if ( $info === false || empty($info[0]) || empty($info[1]) ) {
+			return;
+		}
+
 		$width  = $info[0];
 		$height = $info[1];
 
-		if ( !empty($size) && is_array($size) ) {
+		if ( !empty($size) && is_array($size) && !empty($size[0]) && !empty($size[1]) ) {
 			$ratio = $width / $height;
 
 			$width  = $size[0];
@@ -507,7 +524,7 @@ class Helpers {
 
 		return sprintf(
 			'<img src="%1$s" width="%2$s" height="%3$s" alt="%4$s" class="%5$s">',
-			$url, $width, $height, $alt, $class
+			self::escape($url), (int) $width, (int) $height, self::escape($alt), self::escape($class)
 		);
 	}
 

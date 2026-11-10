@@ -148,7 +148,7 @@ if ( !function_exists('get_current_date') ) {
 
 if ( !function_exists('readline') ) {
 	function readline($question) {
-		Helpers::readline($question);
+		return Helpers::readline($question);
 	}
 }
 

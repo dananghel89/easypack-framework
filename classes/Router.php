@@ -30,29 +30,35 @@ class Router {
 		$router = self::$object;
 		$match = $router->match();
 
-		// call closure or throw 404 status
+		// call the error callback, or send a 404 status
 		if ( $match === false ) {
 			if ( !empty($error) && is_callable($error) ) {
-				call_user_func($error);
-
-			} else {
-				header($_SERVER["SERVER_PROTOCOL"] . ' 404 Not Found');
+				return call_user_func($error);
 			}
 
-		} elseif ( is_callable( $match['target'] ) ) {
-			call_user_func_array( $match['target'], $match['params'] );
+			http_response_code(404);
 
-		} else {
-			@list( $controller, $action ) = explode( '#', $match['target'] );
-
-			if ( method_exists( $controller, $action . 'Action' ) ) {
-				$controller = new $controller;
-				call_user_func_array( array($controller, $action), $match['params'] );
-
-			} else {
-				throw new \Exception('Something went wrong with the current route.');
-			}
+			return null;
 		}
+
+		if ( is_callable( $match['target'] ) ) {
+			return call_user_func_array( $match['target'], $match['params'] );
+		}
+
+		// `Controller#action` targets
+		list( $controller, $action ) = explode( '#', (string) $match['target'], 2 ) + [1 => ''];
+
+		if ( !class_exists( $controller ) ) {
+			throw new \Exception("Route target: controller {$controller} not found.");
+		}
+
+		if ( $action === '' || !method_exists( $controller, $action . 'Action' ) ) {
+			throw new \Exception("Route target: action {$action}Action not found in controller {$controller}.");
+		}
+
+		$controller = new $controller;
+
+		return call_user_func_array( array($controller, $action), $match['params'] );
 	}
 
 }

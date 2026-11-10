@@ -21,14 +21,15 @@ class Config {
 	protected function setData() {
 		$file = ABS_PATH . '/.env';
 
+		// the messages name the file only, never the full path
 		if ( !is_readable($file) ) {
-			throw new \Exception("File not found or without reading permission: {$file}");
+			throw new \Exception('The .env file is missing or not readable (copy .env.example to .env).');
 		}
 
 		self::$data = parse_ini_file($file, false, INI_SCANNER_TYPED);
 
 		if ( empty(self::$data) ) {
-			throw new \Exception("File not valid or is empty: {$file}");
+			throw new \Exception('The .env file is empty or not valid (quote values that contain special characters).');
 		}
 	}
 
