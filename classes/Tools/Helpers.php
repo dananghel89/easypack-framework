@@ -62,21 +62,41 @@ class Helpers {
 
 	/** @group Util */
 
+	// Helpers curl options method.
+	//
+	// Options shared by every outgoing request: certificates are always
+	// verified (CURL_VERIFY_SSL = false turns it off, for local tests only),
+	// and requests time out instead of blocking forever.
+	static function curlOptions() {
+		$verify = !defined('CURL_VERIFY_SSL') || filter_var(CURL_VERIFY_SSL, FILTER_VALIDATE_BOOLEAN);
+
+		return [
+			CURLOPT_RETURNTRANSFER => true,
+			CURLOPT_CONNECTTIMEOUT => 10,
+			CURLOPT_TIMEOUT        => 30,
+			CURLOPT_SSL_VERIFYPEER => $verify,
+			CURLOPT_SSL_VERIFYHOST => $verify ? 2 : 0,
+		];
+	}
+
 	// Helpers get contents method.
+	//
+	// Returns the response body, or false when the request fails.
 	static function getContents($url) {
 		$ch = curl_init();
 
-		curl_setopt($ch, CURLOPT_HEADER, 0);
-		curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-		curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)');
-		curl_setopt($ch, CURLOPT_URL, $url);
-
-		if ( URL_SCHEME === 'http' ) {
-			curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
-			curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-		}
+		curl_setopt_array($ch, self::curlOptions() + [
+			CURLOPT_HEADER    => false,
+			CURLOPT_USERAGENT => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+			CURLOPT_URL       => $url,
+		]);
 
 		$data = curl_exec($ch);
+
+		if ( $data === false ) {
+			error_log('get_contents: ' . curl_error($ch) . ' (' . $url . ')');
+		}
+
 		curl_close($ch);
 
 		return $data;
@@ -111,14 +131,22 @@ class Helpers {
 	}
 
 	// Helpers sanitize input method.
+	//
+	// Trims (and optionally lowercases) a value; arrays are handled item by
+	// item. The value is NOT made "safe for HTML": escape it when you print
+	// it, with e().
 	static function sanitizeInput($data, $lowercase = false) {
+		if ( is_array($data) ) {
+			return array_map(function ($item) use ($lowercase) {
+				return self::sanitizeInput($item, $lowercase);
+			}, $data);
+		}
+
 		if ( !is_string($data) ) {
-			return;
+			return $data;
 		}
 
 		$data = trim($data);
-		$data = stripslashes($data);
-		$data = filter_var($data, FILTER_SANITIZE_STRING);
 
 		if ( $lowercase !== false ) {
 			$data = mb_strtolower($data);
@@ -128,24 +156,32 @@ class Helpers {
 	}
 
 	// Helpers get request method.
+	//
+	// Returns the trimmed GET/POST value, or null when the key is missing.
 	static function getRequest($method, $name, $lowercase = false) {
-		if ( !in_array($method, ['GET', 'POST']) ) {
-			return;
-		}
-
 		switch ( $method ) {
 			case 'GET':
-				$data = Arr::get($name, $_GET);
+				$source = $_GET;
 				break;
 
 			case 'POST':
-				$data = Arr::get($name, $_POST);
+				$source = $_POST;
 				break;
+
+			default:
+				return null;
 		}
 
-		if ( !empty($data) ) {
-			return self::sanitizeInput($data, $lowercase);
+		if ( !array_key_exists($name, $source) ) {
+			return null;
 		}
+
+		return self::sanitizeInput($source[$name], $lowercase);
+	}
+
+	// Helpers escape method.
+	static function escape($value) {
+		return htmlspecialchars((string) $value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 	}
 
 	// Helpers is serialized method.
@@ -259,10 +295,12 @@ class Helpers {
 	}
 
 	// Helpers random string method.
+	//
+	// Cryptographically secure hex string, safe for tokens.
 	static function randomString($length = 8) {
-		return substr(
-			hash( 'sha256', uniqid(mt_rand(), true) ), 0, $length
-		);
+		$length = max(1, (int) $length);
+
+		return substr(bin2hex(random_bytes((int) ceil($length / 2))), 0, $length);
 	}
 
 	// Helpers get date method.

@@ -25,6 +25,9 @@ class Constants {
 			'APP_LANG' => 'en',
 			'APP_NAME' => 'EasyPack Framework',
 			'APP_URL'  => 'http://example.com',
+			'APP_DEBUG' => false, // show error details (never on a public server)
+			'APP_HOSTS' => '', // extra hosts BASE_URL may use, comma-separated
+			'CURL_VERIFY_SSL' => true, // verify certificates of outgoing HTTPS requests
 		];
 
 		foreach ( $data as $name => $value ) {
@@ -75,11 +78,12 @@ class Constants {
 			define('HOST_TLD', $host_tld);
 		}
 
-		if ( !empty($_SERVER['HTTP_HOST']) ) {
-			$domain = $_SERVER['HTTP_HOST'];
+		// the request's Host header is only used when it is a known host:
+		// the APP_URL host or one listed in APP_HOSTS
+		$domain = $url['host'] . ( isset($url['port']) ? ':' . $url['port'] : '' );
 
-		} else {
-			$domain = $url['host'];
+		if ( !empty($_SERVER['HTTP_HOST']) && self::isAllowedHost($_SERVER['HTTP_HOST']) ) {
+			$domain = $_SERVER['HTTP_HOST'];
 		}
 
 		$base_url = $url['scheme'] . '://' . $domain;
@@ -87,6 +91,18 @@ class Constants {
 		if ( !defined('BASE_URL') ) {
 			define('BASE_URL', $base_url);
 		}
+	}
+
+	// Constants is allowed host method.
+	static function isAllowedHost($host) {
+		$host = strtolower(preg_replace('/:\d+$/', '', trim($host)));
+
+		$allowed = array_merge(
+			[strtolower(URL_HOST)],
+			array_map('strtolower', array_map('trim', explode(',', (string) APP_HOSTS)))
+		);
+
+		return $host !== '' && in_array($host, array_filter($allowed), true);
 	}
 
 	// Constants timeIntervals method.

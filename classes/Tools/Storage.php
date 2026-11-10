@@ -26,6 +26,13 @@ class Storage {
 			throw new Exception('HTTP headers already sent to browser, session_start() must be called before outputing any data.');
 		}
 
+		// same session cookie as Auth (config/auth.php `sess_name`)
+		$vars = \Epack\Config::getVars();
+
+		if ( !empty($vars->auth['sess_name']) ) {
+			session_name($vars->auth['sess_name']);
+		}
+
 		if ( !session_start() ) {
 			throw new Exception('PHP session failed to start.');
 		}

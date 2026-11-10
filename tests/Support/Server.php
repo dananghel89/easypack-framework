@@ -24,6 +24,20 @@ final class Server
 
 		$headers = ['X-Epack-Site: ' . ($options['site'] ?? 'default')];
 
+		if (!empty($options['define'])) {
+			$pairs = [];
+
+			foreach ($options['define'] as $name => $value) {
+				$pairs[] = $name . '=' . (is_bool($value) ? ($value ? 'true' : 'false') : $value);
+			}
+
+			$headers[] = 'X-Epack-Define: ' . implode(';', $pairs);
+		}
+
+		if (!empty($options['cookies'])) {
+			$headers[] = 'Cookie: ' . http_build_query($options['cookies'], '', '; ');
+		}
+
 		foreach ($options['headers'] ?? [] as $name => $value) {
 			$headers[] = "{$name}: {$value}";
 		}
@@ -51,12 +65,29 @@ final class Server
 
 		$headerSize = curl_getinfo($ch, CURLINFO_HEADER_SIZE);
 		$status = curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
+		$headers = self::parseHeaders(substr($response, 0, $headerSize));
+
+		$cookies = [];
+
+		foreach ($headers['set-cookie'] ?? [] as $line) {
+			[$pair] = explode(';', $line, 2);
+			[$name, $value] = array_pad(explode('=', $pair, 2), 2, '');
+			$cookies[trim($name)] = urldecode(trim($value));
+		}
 
 		return [
 			'status'  => $status,
-			'headers' => self::parseHeaders(substr($response, 0, $headerSize)),
+			'headers' => $headers,
+			'cookies' => $cookies,
 			'body'    => substr($response, $headerSize),
 		];
+	}
+
+	public static function url(string $path = '/'): string
+	{
+		self::start();
+
+		return 'http://127.0.0.1:' . self::$port . $path;
 	}
 
 	public static function log(): string

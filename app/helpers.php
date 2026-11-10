@@ -84,6 +84,12 @@ if ( !function_exists('decode_host') ) {
 	}
 }
 
+if ( !function_exists('e') ) {
+	function e($value) {
+		return Helpers::escape($value);
+	}
+}
+
 if ( !function_exists('sanitize_input') ) {
 	function sanitize_input($data, $lowercase = false) {
 		return Helpers::sanitizeInput($data, $lowercase);

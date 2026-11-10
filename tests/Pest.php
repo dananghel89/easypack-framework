@@ -23,7 +23,9 @@ epack_init();
 /**
  * Send a request to the fixture site through PHP's built-in web server.
  *
- * @return array{status: int, headers: array<string, string[]>, body: string}
+ * Options: site, define (constants set before boot), cookies, headers, form.
+ *
+ * @return array{status: int, headers: array<string, string[]>, cookies: array<string, string>, body: string}
  */
 function http(string $method, string $path, array $options = []): array
 {

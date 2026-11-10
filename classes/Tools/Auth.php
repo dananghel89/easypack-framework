@@ -1,6 +1,10 @@
 <?php
 /**
  * Epack Auth Class
+ *
+ * Starts the session (name and timeout from config/auth.php) and keeps the
+ * logged-in account in it. Log in with Auth::login($account) and out with
+ * Auth::logout(); never write the session key yourself.
  */
 
 namespace Epack\Tools;
@@ -13,7 +17,7 @@ class Auth {
 	const SESS_CREATED  = 'sess_created';
 
 	// Auth properties.
-	protected static $login;
+	protected static $login = false;
 	protected static $account;
 
 	protected $config;
@@ -28,14 +32,15 @@ class Auth {
 
 		if ( self::isSessionNone() ) {
 			$this->setSession();
-			$this->setUserAccount();
-			$this->sessionTimeout();
-			$this->sessionPersistence();
 		}
 
 		if ( !self::isSessionActive() ) {
-			$this->reloadPage();
+			throw new \RuntimeException('The session could not be started.');
 		}
+
+		$this->sessionTimeout();
+		$this->setUserAccount();
+		$this->sessionPersistence();
 	}
 
 	// Auth set config method.
@@ -48,8 +53,8 @@ class Auth {
 
 		$this->config = $vars->auth;
 
-		$this->sess_name = array_get('sess_name', $this->config);
-		$this->sess_timeout = array_get('sess_timeout', $this->config);
+		$this->sess_name = $this->config['sess_name'] ?? 'sid';
+		$this->sess_timeout = (int) ( $this->config['sess_timeout'] ?? 7200 );
 
 		if ( $this->sess_timeout < $this->min_seconds ) {
 			throw new \Exception( sprintf("Session timeout cannot be less then %s seconds", $this->min_seconds) );
@@ -58,9 +63,11 @@ class Auth {
 
 	// Auth set session method.
 	protected function setSession() {
-		if ( !empty($this->sess_timeout) ) {
-			ini_set('session.gc_maxlifetime', $this->sess_timeout);
+		if ( headers_sent($file, $line) ) {
+			throw new \RuntimeException("The session could not be started: output already started at {$file}:{$line}.");
 		}
+
+		ini_set('session.gc_maxlifetime', (string) $this->sess_timeout);
 
 		session_name($this->sess_name);
 		session_start();
@@ -73,18 +80,16 @@ class Auth {
 	}
 
 	// Auth session timeout method.
+	//
+	// After `sess_timeout` seconds without activity the session is destroyed
+	// and a fresh, empty one is started.
 	protected function sessionTimeout() {
-		if ( empty($this->sess_timeout) ) {
-			return;
-		}
-
-		// destroy session if time is greater than last activity
-
 		if (
 			isset($_SESSION[self::LAST_ACTIVITY]) &&
 			( time() - $_SESSION[self::LAST_ACTIVITY] > $this->sess_timeout )
 		) {
 			self::unsetSession();
+			$this->setSession();
 		}
 
 		$_SESSION[self::LAST_ACTIVITY] = time();
@@ -92,10 +97,7 @@ class Auth {
 
 	// Auth session persistence method.
 	protected function sessionPersistence() {
-		if (
-			empty($this->sess_timeout) ||
-			is_ajax()
-		) {
+		if ( is_ajax() ) {
 			return;
 		}
 
@@ -114,9 +116,26 @@ class Auth {
 		}
 	}
 
-	// Auth reload page method.
-	protected function reloadPage() {
-		header_redirect( get_page_url(true) );
+	// Auth login method.
+	//
+	// Stores the account in a new session ID (prevents session fixation).
+	static function login($account) {
+		if ( !self::isSessionActive() ) {
+			throw new \RuntimeException('Auth::login() needs an active session: create an Auth instance first.');
+		}
+
+		self::sessionRegenerateId();
+
+		$_SESSION[self::USER_ACCOUNT] = $account;
+		$_SESSION[self::SESS_CREATED] = time();
+
+		self::$login = true;
+		self::$account = $account;
+	}
+
+	// Auth logout method.
+	static function logout() {
+		self::unsetSession();
 	}
 
 	// Auth is session none method.
@@ -140,20 +159,24 @@ class Auth {
 
 	// Auth unset session method.
 	static function unsetSession() {
+		self::$login = false;
+		self::$account = null;
+
 		if ( !self::isSessionActive() ) {
 			return;
 		}
 
 		$_SESSION = [];
-		self::$login = false;
 
 		session_unset();
 		session_destroy();
 		session_write_close();
 
-		setcookie(
-			session_name(), '', 0, '/'
-		);
+		if ( !headers_sent() ) {
+			setcookie(
+				session_name(), '', 0, '/'
+			);
+		}
 	}
 
 	// Auth is logged in method.

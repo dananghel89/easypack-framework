@@ -32,6 +32,10 @@ class Model {
 	}
 
 	// Model get fields method.
+	//
+	// $all = true (insert): every field, with the given value or its default.
+	// $all = false (update): only the given fields, never the "!" ones.
+	// Falsy values (0, '0', '', false) are real values, not "missing".
 	static function getFields($post = [], $all = true) {
 		$fields = !empty(static::$fields) ? static::$fields : [];
 
@@ -46,17 +50,30 @@ class Model {
 				}
 			}
 
-			if ( $value === 'NOW' ) {
-				$value = get_current_date();
-			}
+			if ( array_key_exists($key, $post) ) {
+				$rows[$key] = $post[$key];
 
-			$rows[$key] = !empty($post[$key]) ? $post[$key] : $value;
+			} elseif ( $all ) {
+				$rows[$key] = ( $value === 'NOW' ) ? get_current_date() : $value;
+			}
 		}
 
 		return $rows;
 	}
 
+	// Model quote column method.
+	static function quoteColumn($column) {
+		if ( !is_string($column) || !preg_match('/^[A-Za-z_][A-Za-z0-9_]*$/', $column) ) {
+			throw new \InvalidArgumentException('Invalid column name: ' . var_export($column, true));
+		}
+
+		return self::db()->quoteIdentifier($column);
+	}
+
 	// Model query method.
+	//
+	// $columns and $clause go into the SQL as they are: write them in code,
+	// never from request data. Pass every value through $bind.
 	static function query($columns = '*', $clause = '', $bind = [], $fetch = '') {
 		$table = self::getTable();
 
@@ -87,21 +104,26 @@ class Model {
 		}
 	}
 
-	// Model select one method.
+	// Model select method.
+	//
+	// Every non-null value is a condition (`column = value`, joined with AND).
+	// Use query() without a clause to read a whole table.
 	static function select($post = [], $fetch = '') {
-		$clause = "";
+		$clause = [];
 		$bind = [];
 
 		foreach ( $post as $column => $value ) {
-			if ( empty($value) ) continue;
+			if ( $value === null ) continue;
 
-			$clause .= " AND {$column} = ?";
-			array_push($bind, $value);
+			$clause[] = self::quoteColumn($column) . ' = ?';
+			$bind[] = $value;
 		}
 
-		$clause = substr($clause, 4);
+		if ( empty($clause) ) {
+			throw new \InvalidArgumentException('Model::select() needs at least one condition; use query() to read the whole table.');
+		}
 
-		return self::query('*', $clause, $bind, $fetch);
+		return self::query('*', implode(' AND ', $clause), $bind, $fetch);
 	}
 
 	// Model insert method.
@@ -118,9 +140,16 @@ class Model {
 			'id' => $id,
 		];
 
+		$fields = self::getFields($post, false);
+
+		// nothing to change
+		if ( empty($fields) ) {
+			return 0;
+		}
+
 		return self::db()->update(
 			self::getTable(),
-			self::getFields($post, false),
+			$fields,
 			$clause
 		);
 	}

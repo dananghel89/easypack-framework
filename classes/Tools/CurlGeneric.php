@@ -10,6 +10,9 @@ namespace Epack\Tools;
 class CurlGeneric {
 
 	// CG init request method.
+	//
+	// Returns [headers, body], or false when the request fails.
+	// Certificates are verified and the request times out (Helpers::curlOptions()).
 	static function initRequest($req_type, $req_url, $req_body = '', $headers = []) {
 		$req = ['GET', 'POST', 'PUT', 'DELETE'];
 
@@ -19,28 +22,28 @@ class CurlGeneric {
 
 		$ch = curl_init();
 
-		curl_setopt($ch, CURLOPT_URL, $req_url);
-		curl_setopt($ch, CURLOPT_FRESH_CONNECT, true);
-		curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-		curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $req_type);
-		curl_setopt($ch, CURLOPT_POSTFIELDS, $req_body);
-		curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
-		curl_setopt($ch, CURLOPT_HEADER, true);
+		curl_setopt_array($ch, Helpers::curlOptions() + [
+			CURLOPT_URL           => $req_url,
+			CURLOPT_FRESH_CONNECT => true,
+			CURLOPT_CUSTOMREQUEST => $req_type,
+			CURLOPT_POSTFIELDS    => $req_body,
+			CURLOPT_HTTPHEADER    => $headers,
+			CURLOPT_HEADER        => true,
+		]);
 
-		if ( URL_SCHEME === 'http' ) {
-			curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
-			curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+		$response = curl_exec($ch);
+
+		if ( $response === false ) {
+			error_log('CurlGeneric: ' . curl_error($ch) . ' (' . $req_type . ' ' . $req_url . ')');
+			curl_close($ch);
+
+			return false;
 		}
 
-		$body = curl_exec($ch);
-
-		// extract header
+		// split the headers from the body
 		$header_size = curl_getinfo($ch, CURLINFO_HEADER_SIZE);
-		$header = substr($body, 0, $header_size);
-		$header = self::getHeaders($header);
-
-		// extract body
-		$body = substr($body, $header_size);
+		$header = self::getHeaders(substr($response, 0, $header_size));
+		$body = substr($response, $header_size);
 
 		curl_close($ch);
 
@@ -48,21 +51,22 @@ class CurlGeneric {
 	}
 
 	// CG get headers method.
+	//
+	// Parses the last header block (after redirects or "100 Continue").
 	protected static function getHeaders($resp_headers) {
 		$headers = [];
 
-		$header_text = substr(
-			$resp_headers, 0, strpos($resp_headers, "\r\n\r\n")
-		);
+		$blocks = preg_split("/\r?\n\r?\n/", trim($resp_headers));
+		$block = end($blocks);
 
-		foreach ( explode("\r\n", $header_text) as $i => $line ) {
+		foreach ( preg_split("/\r?\n/", $block) as $i => $line ) {
 			if ( $i === 0 ) {
 				$headers['http_code'] = $line;
 
-			} else {
-				list ($key, $value) = explode(': ', $line);
+			} elseif ( strpos($line, ':') !== false ) {
+				list($key, $value) = explode(':', $line, 2);
 
-				$headers[$key] = $value;
+				$headers[trim($key)] = trim($value);
 			}
 		}
 

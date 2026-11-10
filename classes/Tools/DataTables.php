@@ -74,6 +74,7 @@ class DataTables {
 	 */
 	static function limit ( $request, $columns )
 	{
+		$request = self::cleanRequest( $request );
 		$limit = '';
 
 		if ( isset($request['start']) && $request['length'] != -1 ) {
@@ -94,18 +95,29 @@ class DataTables {
 	 */
 	static function order ( $request, $columns )
 	{
+		$request = self::cleanRequest( $request );
 		$order = '';
 
-		if ( isset($request['order']) && count($request['order']) ) {
+		if ( count($request['order']) ) {
 			$orderBy = array();
 			$dtColumns = self::pluck( $columns, 'dt' );
 
 			for ( $i=0, $ien=count($request['order']) ; $i<$ien ; $i++ ) {
 				// Convert the column index into the column data property
-				$columnIdx = intval($request['order'][$i]['column']);
+				$columnIdx = $request['order'][$i]['column'];
+
+				if ( !isset($request['columns'][$columnIdx]) ) {
+					continue;
+				}
+
 				$requestColumn = $request['columns'][$columnIdx];
 
 				$columnIdx = array_search( $requestColumn['data'], $dtColumns );
+
+				if ( $columnIdx === false ) {
+					continue;
+				}
+
 				$column = $columns[ $columnIdx ];
 
 				if ( $requestColumn['orderable'] == 'true' ) {
@@ -142,16 +154,22 @@ class DataTables {
 	 */
 	static function filter ( $request, $columns, &$bindings )
 	{
+		$request = self::cleanRequest( $request );
 		$globalSearch = array();
 		$columnSearch = array();
 		$dtColumns = self::pluck( $columns, 'dt' );
 
-		if ( isset($request['search']) && $request['search']['value'] != '' ) {
+		if ( $request['search']['value'] != '' ) {
 			$str = $request['search']['value'];
 
 			for ( $i=0, $ien=count($request['columns']) ; $i<$ien ; $i++ ) {
 				$requestColumn = $request['columns'][$i];
 				$columnIdx = array_search( $requestColumn['data'], $dtColumns );
+
+				if ( $columnIdx === false ) {
+					continue;
+				}
+
 				$column = $columns[ $columnIdx ];
 
 				if ( $requestColumn['searchable'] == 'true' ) {
@@ -162,10 +180,15 @@ class DataTables {
 		}
 
 		// Individual column filtering
-		if ( isset( $request['columns'] ) ) {
+		if ( count( $request['columns'] ) ) {
 			for ( $i=0, $ien=count($request['columns']) ; $i<$ien ; $i++ ) {
 				$requestColumn = $request['columns'][$i];
 				$columnIdx = array_search( $requestColumn['data'], $dtColumns );
+
+				if ( $columnIdx === false ) {
+					continue;
+				}
+
 				$column = $columns[ $columnIdx ];
 
 				$str = $requestColumn['search']['value'];
@@ -459,19 +482,18 @@ class DataTables {
 			$sql = $bindings;
 		}
 
-		$stmt = $db->prepare( $sql );
-		//echo $sql;
-
-		// Bind parameters
-		if ( is_array( $bindings ) ) {
-			for ( $i=0, $ien=count($bindings) ; $i<$ien ; $i++ ) {
-				$binding = $bindings[$i];
-				$stmt->bindValue( $binding['key'], $binding['val'], $binding['type'] );
-			}
-		}
-
-		// Execute
+		// Prepare, bind and execute (prepare() can fail too, e.g. a missing table)
 		try {
+			$stmt = $db->prepare( $sql );
+
+			// Bind parameters
+			if ( is_array( $bindings ) ) {
+				for ( $i=0, $ien=count($bindings) ; $i<$ien ; $i++ ) {
+					$binding = $bindings[$i];
+					$stmt->bindValue( $binding['key'], $binding['val'], $binding['type'] );
+				}
+			}
+
 			$stmt->execute();
 		}
 		catch (\PDOException $e) {
@@ -487,17 +509,74 @@ class DataTables {
 	 */
 
 	/**
+	 * Normalise the request sent by DataTables, so malformed values (a string
+	 * where an array is expected, missing keys) can't cause errors.
+	 *
+	 * @param  mixed $request Data sent to server by DataTables
+	 * @return array          Request with `order`, `columns` and `search` always set
+	 */
+	static function cleanRequest ( $request )
+	{
+		$request = is_array( $request ) ? $request : array();
+
+		$order = array();
+
+		foreach ( is_array( $request['order'] ?? null ) ? $request['order'] : array() as $item ) {
+			if ( is_array( $item ) ) {
+				$order[] = array(
+					'column' => intval( $item['column'] ?? 0 ),
+					'dir'    => ( $item['dir'] ?? '' ) === 'asc' ? 'asc' : 'desc',
+				);
+			}
+		}
+
+		$columns = array();
+
+		foreach ( is_array( $request['columns'] ?? null ) ? $request['columns'] : array() as $item ) {
+			if ( is_array( $item ) ) {
+				$columns[] = array(
+					'data'       => is_scalar( $item['data'] ?? null ) ? (string) $item['data'] : '',
+					'searchable' => ( $item['searchable'] ?? '' ) === 'true' ? 'true' : 'false',
+					'orderable'  => ( $item['orderable'] ?? '' ) === 'true' ? 'true' : 'false',
+					'search'     => array(
+						'value' => is_scalar( $item['search']['value'] ?? null ) ? (string) $item['search']['value'] : '',
+					),
+				);
+			}
+		}
+
+		$request['order'] = $order;
+		$request['columns'] = $columns;
+		$request['search'] = array(
+			'value' => is_scalar( $request['search']['value'] ?? null ) ? (string) $request['search']['value'] : '',
+		);
+
+		if ( isset( $request['start'] ) ) {
+			$request['length'] = isset( $request['length'] ) ? intval( $request['length'] ) : -1;
+		}
+
+		return $request;
+	}
+
+	/**
 	 * Throw a fatal error.
 	 *
-	 * This writes out an error message in a JSON string which DataTables will
-	 * see and show to the user in the browser.
+	 * The details are logged (storage/logs/epack.log); the browser only gets
+	 * a generic message as JSON, with status 500, which DataTables shows.
 	 *
-	 * @param  string $msg Message to send to the client
+	 * @param  string $msg Message to log
 	 */
 	static function fatal ( $msg )
 	{
+		\Epack\ErrorHandler::write( 'DataTables: ' . $msg );
+
+		if ( !headers_sent() ) {
+			http_response_code( 500 );
+			header( 'Content-Type: application/json; charset=utf-8' );
+		}
+
 		echo json_encode( array(
-			"error" => $msg
+			"error" => 'A database error occurred.'
 		) );
 
 		exit(0);

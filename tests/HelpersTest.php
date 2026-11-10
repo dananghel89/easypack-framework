@@ -55,3 +55,12 @@ test('URL helpers use APP_URL', function () {
 		->and(get_host('api'))->toBe('api.easypack.test')
 		->and(get_host_url('api', false, false, 'v1'))->toBe('http://api.easypack.test/v1');
 });
+
+test('R15: random_string() is unpredictable and has the requested length', function () {
+	$a = random_string(32);
+	$b = random_string(32);
+
+	expect($a)->toHaveLength(32)->not->toBe($b)
+		->and(random_string())->toHaveLength(8)
+		->and(random_string(7))->toHaveLength(7);
+});

@@ -15,8 +15,13 @@ if ( !function_exists('epack_init') ) {
 
 		require __DIR__ . '/helpers.php';
 
+		Epack\ErrorHandler::register();
+
 		new Epack\Config();
 		new Epack\Constants();
+
+		Epack\Tools\Translation::configure(APP_PATH . '/locales', APP_LANG);
+
 		new Epack\Middleware();
 		new Epack\Router();
 
