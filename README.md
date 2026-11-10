@@ -84,6 +84,8 @@ composer lint        # Pint (PER coding style)
 composer test:lint
 ```
 
+The config constants (`APP_URL`, `APP_DEBUG`, `STORAGE_PATH`, …) are defined at runtime, so editors can't see them. `stubs/constants.php` declares them for editors and static analysis; it is never loaded.
+
 ## License
 
 MIT, see [LICENSE](LICENSE). Some classes are adapted from MIT-licensed projects, and their original notices are kept in the files: `Storage` (Hybridauth) and `Translation` (Interativa Digital).
