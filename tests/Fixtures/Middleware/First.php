@@ -2,8 +2,8 @@
 
 namespace Tests\Fixtures\Middleware;
 
-class First {
-
-	public static $position = 0;
+class First
+{
+    public static $position = 0;
 
 }

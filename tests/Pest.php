@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Test bootstrap.
  *
@@ -29,7 +30,7 @@ epack_init();
  */
 function http(string $method, string $path, array $options = []): array
 {
-	return Server::request($method, $path, $options);
+    return Server::request($method, $path, $options);
 }
 
 /**
@@ -37,13 +38,13 @@ function http(string $method, string $path, array $options = []): array
  */
 function capture(callable $callback): string
 {
-	ob_start();
+    ob_start();
 
-	try {
-		$callback();
-	} finally {
-		$output = ob_get_clean();
-	}
+    try {
+        $callback();
+    } finally {
+        $output = ob_get_clean();
+    }
 
-	return $output;
+    return $output;
 }

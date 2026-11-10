@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Front controller of the fixture sites (built-in web server router).
  *
@@ -11,15 +12,15 @@
 $site = preg_replace('/[^a-z0-9-]/', '', $_SERVER['HTTP_X_EPACK_SITE'] ?? '') ?: 'default';
 
 foreach (array_filter(explode(';', $_SERVER['HTTP_X_EPACK_DEFINE'] ?? '')) as $pair) {
-	[$name, $value] = array_pad(explode('=', $pair, 2), 2, '');
+    [$name, $value] = array_pad(explode('=', $pair, 2), 2, '');
 
-	$value = match ($value) {
-		'true'  => true,
-		'false' => false,
-		default => $value,
-	};
+    $value = match ($value) {
+        'true'  => true,
+        'false' => false,
+        default => $value,
+    };
 
-	define(trim($name), $value);
+    define(trim($name), $value);
 }
 
 define('ABS_PATH', dirname(__DIR__) . '/sites/' . $site);

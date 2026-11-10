@@ -2,6 +2,4 @@
 
 namespace Tests\Fixtures\Middleware;
 
-class Late {
-
-}
+class Late {}

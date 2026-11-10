@@ -1,42 +1,47 @@
 <?php
+
 /**
  * Epack Controller Class
  */
 
 namespace Epack;
 
-class Controller {
+class Controller
+{
+    // Controller call.
+    public function __call($name, $args)
+    {
+        $method = $name . 'Action';
 
-	// Controller call.
-	public function __call($name, $args) {
-		$method = $name . 'Action';
+        if (method_exists($this, $method)) {
+            if ($this->before() === false) {
+                return null;
+            }
 
-		if ( method_exists($this, $method) ) {
-			if ( $this->before() === false ) {
-				return null;
-			}
+            $result = call_user_func_array(
+                [$this, $method],
+                $args,
+            );
 
-			$result = call_user_func_array(
-				[$this, $method], $args
-			);
+            $this->after();
 
-			$this->after();
+            return $result;
 
-			return $result;
+        } else {
+            throw new \Exception("Method {$method} not found in controller " . get_class($this));
+        }
+    }
 
-		} else {
-			throw new \Exception("Method {$method} not found in controller " . get_class($this));
-		}
-	}
+    // Controller before method.
+    protected function before()
+    {
+        # code...
+    }
 
-	// Controller before method.
-	protected function before() {
-		# code...
-	}
-
-	// Controller after method.
-	protected function after() {
-		# code...
-	}
+    // Controller after method.
+    protected function after()
+    {
+        # code...
+    }
 
 }

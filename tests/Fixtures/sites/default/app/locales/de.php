@@ -1,5 +1,5 @@
 <?php
 
 return [
-	'hello' => 'Hallo {name}',
+    'hello' => 'Hallo {name}',
 ];

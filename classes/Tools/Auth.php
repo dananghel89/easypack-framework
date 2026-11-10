@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Epack Auth Class
  *
@@ -9,184 +10,201 @@
 
 namespace Epack\Tools;
 
-class Auth {
+class Auth
+{
+    // Auth constants.
+    public const USER_ACCOUNT  = 'user_account';
+    public const LAST_ACTIVITY = 'last_activity';
+    public const SESS_CREATED  = 'sess_created';
 
-	// Auth constants.
-	const USER_ACCOUNT  = 'user_account';
-	const LAST_ACTIVITY = 'last_activity';
-	const SESS_CREATED  = 'sess_created';
+    // Auth properties.
+    protected static $login = false;
+    protected static $account;
 
-	// Auth properties.
-	protected static $login = false;
-	protected static $account;
+    protected $config;
 
-	protected $config;
+    protected $sess_name = 'sid';
+    protected $sess_timeout = 7200;
+    protected $min_seconds = HOUR_IN_SECONDS;
 
-	protected $sess_name = 'sid';
-	protected $sess_timeout = 7200;
-	protected $min_seconds = HOUR_IN_SECONDS;
+    // Auth constructor.
+    public function __construct()
+    {
+        $this->setConfig();
 
-	// Auth constructor.
-	public function __construct() {
-		$this->setConfig();
+        if (self::isSessionNone()) {
+            $this->setSession();
+        }
 
-		if ( self::isSessionNone() ) {
-			$this->setSession();
-		}
+        if (!self::isSessionActive()) {
+            throw new \RuntimeException('The session could not be started.');
+        }
 
-		if ( !self::isSessionActive() ) {
-			throw new \RuntimeException('The session could not be started.');
-		}
+        $this->sessionTimeout();
+        $this->setUserAccount();
+        $this->sessionPersistence();
+    }
 
-		$this->sessionTimeout();
-		$this->setUserAccount();
-		$this->sessionPersistence();
-	}
+    // Auth set config method.
+    protected function setConfig()
+    {
+        $vars = \Epack\Config::getVars();
 
-	// Auth set config method.
-	protected function setConfig() {
-		$vars = \Epack\Config::getVars();
+        if (!isset($vars->auth)) {
+            throw new \Exception('Auth config is not set!');
+        }
 
-		if ( !isset($vars->auth) ) {
-			throw new \Exception('Auth config is not set!');
-		}
+        $this->config = $vars->auth;
 
-		$this->config = $vars->auth;
+        $this->sess_name = $this->config['sess_name'] ?? 'sid';
+        $this->sess_timeout = (int) ($this->config['sess_timeout'] ?? 7200);
 
-		$this->sess_name = $this->config['sess_name'] ?? 'sid';
-		$this->sess_timeout = (int) ( $this->config['sess_timeout'] ?? 7200 );
+        if ($this->sess_timeout < $this->min_seconds) {
+            throw new \Exception(sprintf("Session timeout cannot be less then %s seconds", $this->min_seconds));
+        }
+    }
 
-		if ( $this->sess_timeout < $this->min_seconds ) {
-			throw new \Exception( sprintf("Session timeout cannot be less then %s seconds", $this->min_seconds) );
-		}
-	}
+    // Auth set session method.
+    protected function setSession()
+    {
+        if (headers_sent($file, $line)) {
+            throw new \RuntimeException("The session could not be started: output already started at {$file}:{$line}.");
+        }
 
-	// Auth set session method.
-	protected function setSession() {
-		if ( headers_sent($file, $line) ) {
-			throw new \RuntimeException("The session could not be started: output already started at {$file}:{$line}.");
-		}
+        ini_set('session.gc_maxlifetime', (string) $this->sess_timeout);
 
-		ini_set('session.gc_maxlifetime', (string) $this->sess_timeout);
+        session_name($this->sess_name);
+        session_start();
+    }
 
-		session_name($this->sess_name);
-		session_start();
-	}
+    // Auth set user account method.
+    protected function setUserAccount()
+    {
+        self::$login = isset($_SESSION[self::USER_ACCOUNT]);
+        self::$account = self::$login ? $_SESSION[self::USER_ACCOUNT] : null;
+    }
 
-	// Auth set user account method.
-	protected function setUserAccount() {
-		self::$login = isset($_SESSION[self::USER_ACCOUNT]);
-		self::$account = self::$login ? $_SESSION[self::USER_ACCOUNT] : null;
-	}
+    // Auth session timeout method.
+    //
+    // After `sess_timeout` seconds without activity the session is destroyed
+    // and a fresh, empty one is started.
+    protected function sessionTimeout()
+    {
+        if (
+            isset($_SESSION[self::LAST_ACTIVITY])
+            && (time() - $_SESSION[self::LAST_ACTIVITY] > $this->sess_timeout)
+        ) {
+            self::unsetSession();
+            $this->setSession();
+        }
 
-	// Auth session timeout method.
-	//
-	// After `sess_timeout` seconds without activity the session is destroyed
-	// and a fresh, empty one is started.
-	protected function sessionTimeout() {
-		if (
-			isset($_SESSION[self::LAST_ACTIVITY]) &&
-			( time() - $_SESSION[self::LAST_ACTIVITY] > $this->sess_timeout )
-		) {
-			self::unsetSession();
-			$this->setSession();
-		}
+        $_SESSION[self::LAST_ACTIVITY] = time();
+    }
 
-		$_SESSION[self::LAST_ACTIVITY] = time();
-	}
+    // Auth session persistence method.
+    protected function sessionPersistence()
+    {
+        if (is_ajax()) {
+            return;
+        }
 
-	// Auth session persistence method.
-	protected function sessionPersistence() {
-		if ( is_ajax() ) {
-			return;
-		}
+        // regenerate session id every 10 minutes
 
-		// regenerate session id every 10 minutes
+        $timeout = 10 * 60;
 
-		$timeout = 10 * 60;
+        if (!isset($_SESSION[self::SESS_CREATED])) {
+            $_SESSION[self::SESS_CREATED] = time();
+        }
 
-		if ( !isset($_SESSION[self::SESS_CREATED]) ) {
-			$_SESSION[self::SESS_CREATED] = time();
-		}
+        if (time() - $_SESSION[self::SESS_CREATED] > $timeout) {
+            self::sessionRegenerateId();
 
-		if ( time() - $_SESSION[self::SESS_CREATED] > $timeout ) {
-			self::sessionRegenerateId();
+            $_SESSION[self::SESS_CREATED] = time();
+        }
+    }
 
-			$_SESSION[self::SESS_CREATED] = time();
-		}
-	}
+    // Auth login method.
+    //
+    // Stores the account in a new session ID (prevents session fixation).
+    public static function login($account)
+    {
+        if (!self::isSessionActive()) {
+            throw new \RuntimeException('Auth::login() needs an active session: create an Auth instance first.');
+        }
 
-	// Auth login method.
-	//
-	// Stores the account in a new session ID (prevents session fixation).
-	static function login($account) {
-		if ( !self::isSessionActive() ) {
-			throw new \RuntimeException('Auth::login() needs an active session: create an Auth instance first.');
-		}
+        self::sessionRegenerateId();
 
-		self::sessionRegenerateId();
+        $_SESSION[self::USER_ACCOUNT] = $account;
+        $_SESSION[self::SESS_CREATED] = time();
 
-		$_SESSION[self::USER_ACCOUNT] = $account;
-		$_SESSION[self::SESS_CREATED] = time();
+        self::$login = true;
+        self::$account = $account;
+    }
 
-		self::$login = true;
-		self::$account = $account;
-	}
+    // Auth logout method.
+    public static function logout()
+    {
+        self::unsetSession();
+    }
 
-	// Auth logout method.
-	static function logout() {
-		self::unsetSession();
-	}
+    // Auth is session none method.
+    public static function isSessionNone()
+    {
+        return (session_status() === PHP_SESSION_NONE) ? true : false;
+    }
 
-	// Auth is session none method.
-	static function isSessionNone() {
-		return ( session_status() === PHP_SESSION_NONE ) ? true : false;
-	}
+    // Auth is session active method.
+    public static function isSessionActive()
+    {
+        return (session_status() === PHP_SESSION_ACTIVE) ? true : false;
+    }
 
-	// Auth is session active method.
-	static function isSessionActive() {
-		return ( session_status() === PHP_SESSION_ACTIVE ) ? true : false;
-	}
+    // Auth session regenerate id method.
+    public static function sessionRegenerateId()
+    {
+        if (!self::isSessionActive()) {
+            return;
+        }
 
-	// Auth session regenerate id method.
-	static function sessionRegenerateId() {
-		if ( !self::isSessionActive() ) {
-			return;
-		}
+        session_regenerate_id(true);
+    }
 
-		session_regenerate_id(true);
-	}
+    // Auth unset session method.
+    public static function unsetSession()
+    {
+        self::$login = false;
+        self::$account = null;
 
-	// Auth unset session method.
-	static function unsetSession() {
-		self::$login = false;
-		self::$account = null;
+        if (!self::isSessionActive()) {
+            return;
+        }
 
-		if ( !self::isSessionActive() ) {
-			return;
-		}
+        $_SESSION = [];
 
-		$_SESSION = [];
+        session_unset();
+        session_destroy();
+        session_write_close();
 
-		session_unset();
-		session_destroy();
-		session_write_close();
+        if (!headers_sent()) {
+            setcookie(
+                session_name(),
+                '',
+                0,
+                '/',
+            );
+        }
+    }
 
-		if ( !headers_sent() ) {
-			setcookie(
-				session_name(), '', 0, '/'
-			);
-		}
-	}
+    // Auth is logged in method.
+    public static function isLoggedIn()
+    {
+        return self::$login;
+    }
 
-	// Auth is logged in method.
-	static function isLoggedIn() {
-		return self::$login;
-	}
-
-	// Auth get account method.
-	static function getAccount() {
-		return self::$account;
-	}
+    // Auth get account method.
+    public static function getAccount()
+    {
+        return self::$account;
+    }
 
 }
