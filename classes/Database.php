@@ -30,6 +30,23 @@ class Database {
 
 		self::$source = new \Delight\Db\PdoDataSource($drive);
 
+		// sqlite: `name` is a file path, or `:memory:` for an in-memory database
+		if ( $drive === \Delight\Db\PdoDataSource::DRIVER_NAME_SQLITE ) {
+			// clear the network defaults that the data source sets for every driver
+			self::$source->setHostname(null)
+				->setPort(null)
+				->setCharset(null);
+
+			if ( $name === ':memory:' ) {
+				self::$source->setMemory(true);
+
+			} else {
+				self::$source->setFilePath($name);
+			}
+
+			return;
+		}
+
 		self::$source->setHostname($hostname)
 			->setPort($port)
 			->setDatabaseName($name)
