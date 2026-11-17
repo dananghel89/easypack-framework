@@ -5,7 +5,7 @@
  */
 
 use Epack\Tools\Auth;
-use Epack\Tools\Storage;
+use Epack\Tools\StorageSession;
 use Tests\Fixtures\Controllers\PageController;
 
 $router = Epack\Router::getInstance();
@@ -59,7 +59,7 @@ $router->map('GET', '/auth/broken', function () {
     new Auth();
 });
 $router->map('GET', '/storage', function () {
-    $storage = new Storage();
+    $storage = new StorageSession();
     $storage->set('key', 'value');
     echo session_name();
 });

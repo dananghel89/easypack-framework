@@ -1,7 +1,7 @@
 <?php
 
 /**
- * R14 and R22 (review plan): login, logout, session fixation, Storage.
+ * R14 and R22 (review plan): login, logout, session fixation, StorageSession.
  */
 
 test('login() changes the session ID and stores the account', function () {
@@ -41,6 +41,6 @@ test('a session that cannot start throws instead of redirecting', function () {
         ->and($response['body'])->toContain('fixture 500 page');
 });
 
-test('R22: Storage uses the configured session name', function () {
+test('R22: StorageSession uses the configured session name', function () {
     expect(http('GET', '/storage')['body'])->toBe('sid');
 });

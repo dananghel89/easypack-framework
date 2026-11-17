@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Epack Storage Class
+ * Epack StorageSession Class
  *
  * Adapted from Hybridauth's session storage (src/Storage/Session.php):
  * renamed, and the session name now comes from config/auth.php.
@@ -20,7 +20,7 @@ namespace Epack\Tools;
 
 use Exception;
 
-class Storage
+class StorageSession
 {
     // Session properties.
     protected $storeNamespace = 'EPACK::STORAGE';
