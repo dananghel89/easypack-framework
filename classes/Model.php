@@ -12,6 +12,9 @@ class Model
     protected static $pdo;
     protected static $prefix;
 
+    protected static $table = '';
+    protected static $fields = [];
+
     // Model constructor.
     public function __construct()
     {
