@@ -1,8 +1,8 @@
 # CLAUDE.md
 
-EasyPack Framework: a small PHP framework (namespace `Epack\`, code in `classes/`, bootstrap in `app/init.php`, global helpers in `app/helpers.php`). Its consumer is the sibling repo `../easypack-appstarter`, which installs this package through a Composer `path` repository (a junction at `vendor/dananghel89/easypack-framework`), so edits here are live there.
+EasyPack Framework: a small PHP framework (namespace `Epack\`, code in `classes/`, bootstrap in `app/init.php`, global helpers in `app/helpers.php`). Its consumer is the sibling repo `../easypack-appstarter`, which installs tagged releases (`^1.0`) from GitHub, so edits here reach it only after a new tag. To try unreleased changes there, point its `composer.json` at a `path` repository `../easypack-framework` temporarily (don't commit that).
 
-Plans live in `../docs/` (not in this repo): review/fix (done), then GitHub migration, then the upgrade to 2.0.
+Plans live in `../docs/` (not in this repo): review/fix (done), GitHub migration (done, 2026-11-18), then the upgrade to 2.0.
 
 ## Stack
 
@@ -41,4 +41,4 @@ composer test:lint   # Pint --test
 - Commit messages: one line, `type: description` (`fix:`, `feat:`, `test:`, `refactor:`, `chore:`, `docs:`, `style:`).
 - Git identity is set locally in this repo (`dananghel89` with the GitHub noreply address); check it before committing.
 - Never put a personal name, an email address, or the old Composer vendor / Bitbucket workspace names into files or commits. The only identity in the repo is `dananghel89`.
-- Remote: Bitbucket (private), branch `master`, until the GitHub migration plan.
+- Remote: GitHub `origin` (https://github.com/dananghel89/easypack-framework, public), branch `master`. Releases are annotated tags (`v1.0.0`).
